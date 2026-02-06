@@ -1,0 +1,27 @@
+{
+    "name": "raparty/inventory-agent",
+    "description": "Enterprise Inventory Management System",
+    "type": "project",
+    "require": {
+        "php": ">=7.4",
+        "ext-mysqli": "*",
+        "ext-json": "*"
+    },
+    "require-dev": {
+        "phpstan/phpstan": "^1.10"
+    },
+    "autoload": {
+        "files": []
+    },
+    "scripts": {
+        "test": "echo 'No tests configured yet'",
+        "lint": "find . -name '*.php' -exec php -l {} \\;"
+    },
+    "license": "proprietary",
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    }
+}

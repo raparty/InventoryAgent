@@ -47,7 +47,7 @@ while ($d = $devices->fetch_assoc()) {
     $device_id = (int)$d["id"];
 
     // Get monitors (max 2) and their asset tags
-    $m = $mysqli->query("
+    $m_stmt = $mysqli->prepare("
         SELECT 
             mo.model AS monitor_model, 
             mo.serial AS monitor_serial,
@@ -55,10 +55,13 @@ while ($d = $devices->fetch_assoc()) {
         FROM monitors mo
         LEFT JOIN monitor_asset_tag_map mat 
             ON mat.monitor_serial = mo.serial
-        WHERE mo.device_id = {$device_id}
+        WHERE mo.device_id = ?
         ORDER BY mo.id
         LIMIT 2
     ");
+    $m_stmt->bind_param("i", $device_id);
+    $m_stmt->execute();
+    $m = $m_stmt->get_result();
 
     $monitors = [];
     while ($row = $m->fetch_assoc()) {

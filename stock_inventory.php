@@ -18,21 +18,28 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
     } else {
         // Update Balance
         if ($_POST['action'] == 'receive') {
-            $sql = "INSERT INTO stock_inventory (category, model_name, current_stock, modified_by) 
-                    VALUES ('$cat', '$model', $qty, '$modifier') 
-                    ON DUPLICATE KEY UPDATE current_stock = current_stock + $qty, modified_by = '$modifier'";
+            $stmt = $mysqli->prepare("INSERT INTO stock_inventory (category, model_name, current_stock, modified_by) 
+                    VALUES (?, ?, ?, ?) 
+                    ON DUPLICATE KEY UPDATE current_stock = current_stock + ?, modified_by = ?");
+            $stmt->bind_param("ssiisi", $cat, $model, $qty, $modifier, $qty, $modifier);
         } else {
-            $sql = "UPDATE stock_inventory SET current_stock = current_stock - $qty, modified_by = '$modifier' 
-                    WHERE model_name = '$model' AND current_stock >= $qty";
+            $stmt = $mysqli->prepare("UPDATE stock_inventory SET current_stock = current_stock - ?, modified_by = ? 
+                    WHERE model_name = ? AND current_stock >= ?");
+            $stmt->bind_param("issi", $qty, $modifier, $model, $qty);
         }
         
-        if ($mysqli->query($sql)) {
+        if ($stmt->execute()) {
             // Log the Transaction for Audit
-            $item_res = $mysqli->query("SELECT id FROM stock_inventory WHERE model_name = '$model'");
+            $item_stmt = $mysqli->prepare("SELECT id FROM stock_inventory WHERE model_name = ?");
+            $item_stmt->bind_param("s", $model);
+            $item_stmt->execute();
+            $item_res = $item_stmt->get_result();
             $item_id = $item_res->fetch_assoc()['id'];
             $act_label = ($_POST['action'] == 'receive') ? 'Receive' : 'Issue';
-            $mysqli->query("INSERT INTO stock_logs (item_id, action_type, quantity, admin_user) VALUES ($item_id, '$act_label', $qty, '$modifier')");
-            $message = "<div class='alert alert-success mx-3 shadow-sm'>Successfully logged: $act_label $qty x $model</div>";
+            $log_stmt = $mysqli->prepare("INSERT INTO stock_logs (item_id, action_type, quantity, admin_user) VALUES (?, ?, ?, ?)");
+            $log_stmt->bind_param("isis", $item_id, $act_label, $qty, $modifier);
+            $log_stmt->execute();
+            $message = "<div class='alert alert-success mx-3 shadow-sm'>Successfully logged: $act_label $qty x " . htmlspecialchars($model) . "</div>";
         }
     }
 }

@@ -46,8 +46,11 @@ if ($device_id > 0) {
         // Software Inventory
         fputcsv($output, ['INSTALLED SOFTWARE INVENTORY']);
         fputcsv($output, ['Software Name', 'Version']);
-        $soft = $mysqli->query("SELECT software_name, version FROM installed_software WHERE device_id = $device_id ORDER BY software_name ASC");
-        while ($s = $soft->fetch_assoc()) {
+        $soft_stmt = $mysqli->prepare("SELECT software_name, version FROM installed_software WHERE device_id = ? ORDER BY software_name ASC");
+        $soft_stmt->bind_param("i", $device_id);
+        $soft_stmt->execute();
+        $soft_result = $soft_stmt->get_result();
+        while ($s = $soft_result->fetch_assoc()) {
             fputcsv($output, [$s['software_name'], $s['version']]);
         }
     }

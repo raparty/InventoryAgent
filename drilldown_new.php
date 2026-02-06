@@ -5,26 +5,29 @@ include "header_new.php";
 
 $mysqli->set_charset('utf8mb4');
 
-$type = $_GET['type'] ?? '';
+$type = isset($_GET['type']) ? htmlspecialchars($_GET['type'], ENT_QUOTES, 'UTF-8') : '';
 $displayTitle = "Inventory Details";
 $whereClause = "1=1";
 
-// Handle Drilldown Types
-switch ($type) {
-    case 'missing_asset_tag':
-        $displayTitle = "Devices Missing Asset Tags";
-        $whereClause = "NOT EXISTS (SELECT 1 FROM asset_tag_map atm WHERE atm.serial_number = d.serial)";
-        break;
-    case 'offline':
-        $displayTitle = "Devices Offline > 7 Days";
-        $whereClause = "DATEDIFF(CURDATE(), d.last_seen) > 7";
-        break;
-    case 'pending_reboot':
-        $displayTitle = "Devices Requiring Reboot";
-        $whereClause = "d.uptime_seconds > 604800";
-        break;
-    default:
-        $displayTitle = "General Inventory Drilldown";
+// Handle Drilldown Types - using whitelist approach
+$allowedTypes = ['missing_asset_tag', 'offline', 'pending_reboot'];
+if (in_array($type, $allowedTypes)) {
+    switch ($type) {
+        case 'missing_asset_tag':
+            $displayTitle = "Devices Missing Asset Tags";
+            $whereClause = "NOT EXISTS (SELECT 1 FROM asset_tag_map atm WHERE atm.serial_number = d.serial)";
+            break;
+        case 'offline':
+            $displayTitle = "Devices Offline > 7 Days";
+            $whereClause = "DATEDIFF(CURDATE(), d.last_seen) > 7";
+            break;
+        case 'pending_reboot':
+            $displayTitle = "Devices Requiring Reboot";
+            $whereClause = "d.uptime_seconds > 604800";
+            break;
+    }
+} else {
+    $displayTitle = "General Inventory Drilldown";
 }
 
 $query = "
