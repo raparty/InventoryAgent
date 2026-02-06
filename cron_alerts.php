@@ -114,6 +114,8 @@ $result = file_get_contents($webhook_url, false, $context);
 
 // 8. Mark logs as Sent to prevent duplicates tomorrow
 if ($result !== FALSE && !empty($log_ids)) {
+    // Sanitize log IDs to prevent SQL injection
+    $log_ids = array_map('intval', $log_ids);
     $ids_string = implode(',', $log_ids);
     $mysqli->query("UPDATE device_change_logs SET is_sent = 1 WHERE id IN ($ids_string)");
     echo "Summary successfully sent to Teams.";

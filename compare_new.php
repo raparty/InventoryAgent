@@ -53,16 +53,22 @@ if (!isset($_GET['device_id'])) {
 /* 2. OPTIMIZED SQL DATA FETCHING */
 $device_id = intval($_GET['device_id']);
 
-// 2) FAST QUERY: Using specific columns rather than SELECT *
-$dev = $mysqli->query("SELECT id, hostname, serial, location FROM devices WHERE id = $device_id LIMIT 1")->fetch_assoc();
+// 2) FAST QUERY: Using specific columns rather than SELECT * with prepared statement
+$stmt = $mysqli->prepare("SELECT id, hostname, serial, location FROM devices WHERE id = ? LIMIT 1");
+$stmt->bind_param("i", $device_id);
+$stmt->execute();
+$dev = $stmt->get_result()->fetch_assoc();
 
 if (!$dev) {
     echo "<div class='alert alert-danger m-4'>Error: Device not found.</div>";
     include "footer.php"; exit;
 }
 
-// 2) FAST QUERY: Fetching only IDs and timestamps for the selector
-$snapshots = $mysqli->query("SELECT id, snapshot_time FROM device_history WHERE device_id = $device_id ORDER BY snapshot_time DESC")->fetch_all(MYSQLI_ASSOC);
+// 2) FAST QUERY: Fetching only IDs and timestamps for the selector with prepared statement
+$stmt2 = $mysqli->prepare("SELECT id, snapshot_time FROM device_history WHERE device_id = ? ORDER BY snapshot_time DESC");
+$stmt2->bind_param("i", $device_id);
+$stmt2->execute();
+$snapshots = $stmt2->get_result()->fetch_all(MYSQLI_ASSOC);
 
 if (count($snapshots) < 2) {
     echo "<div class='alert alert-info m-4'><strong>Insufficient History:</strong> Two snapshots required to compare.</div>";
@@ -74,7 +80,10 @@ $idB = intval($_GET['b'] ?? $snapshots[0]['id']);
 
 // Function to fetch specific snapshot JSON
 function get_snapshot_fast($mysqli, $sid, $did) {
-    $res = $mysqli->query("SELECT raw_json FROM device_history WHERE id = $sid AND device_id = $did LIMIT 1")->fetch_assoc();
+    $stmt = $mysqli->prepare("SELECT raw_json FROM device_history WHERE id = ? AND device_id = ? LIMIT 1");
+    $stmt->bind_param("ii", $sid, $did);
+    $stmt->execute();
+    $res = $stmt->get_result()->fetch_assoc();
     return $res ? json_decode($res['raw_json'], true) : [];
 }
 
