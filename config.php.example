@@ -1,0 +1,42 @@
+<?php
+/**
+ * Database Configuration
+ * Copy this file to config.php and update with your actual credentials
+ */
+
+// Database connection settings
+$db_host = 'localhost';
+$db_user = 'your_database_user';
+$db_pass = 'your_database_password';
+$db_name = 'inventory_database';
+
+// Create database connection
+$mysqli = new mysqli($db_host, $db_user, $db_pass, $db_name);
+
+// Check connection
+if ($mysqli->connect_error) {
+    die("Database Connection Failed: " . $mysqli->connect_error);
+}
+
+// Set character set
+$mysqli->set_charset('utf8mb4');
+
+// Microsoft Teams Webhook URL (used by cron_alerts.php)
+// Move the webhook URL from cron_alerts.php to here for better security
+define('TEAMS_WEBHOOK_URL', 'your_teams_webhook_url_here');
+
+// Optional: Application settings
+define('APP_NAME', 'Enterprise Inventory');
+define('APP_ENV', 'production'); // 'development' or 'production'
+
+// Optional: Error reporting (set to 0 in production)
+if (APP_ENV === 'development') {
+    ini_set('display_errors', 1);
+    ini_set('display_startup_errors', 1);
+    error_reporting(E_ALL);
+} else {
+    ini_set('display_errors', 0);
+    ini_set('display_startup_errors', 0);
+    error_reporting(0);
+}
+?>
