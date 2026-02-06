@@ -23,26 +23,32 @@ $locHYDW = $mysqli->query("SELECT COUNT(*) as cnt FROM devices WHERE location LI
 $locHYDE = $mysqli->query("SELECT COUNT(*) as cnt FROM devices WHERE location LIKE '%HYDE%' AND status = 'Active'")->fetch_assoc()['cnt'] ?? 0;
 $locUNK = $mysqli->query("SELECT COUNT(*) as cnt FROM devices WHERE (location IS NULL OR location = '' OR location = 'UNKNOWN') AND status = 'Active'")->fetch_assoc()['cnt'] ?? 0;
 
-// Patch compliance stats
+// Patch compliance stats - Fixed SQL aggregation issues
 $up_to_date = $mysqli->query("
-    SELECT COUNT(DISTINCT d.id) as cnt 
-    FROM devices d
-    LEFT JOIN patch_status p ON d.id = p.device_id
-    WHERE d.status = 'Active' 
-      AND d.last_seen > NOW() - INTERVAL 30 DAY
-      AND DATEDIFF(CURDATE(), MAX(p.install_date)) <= 45
-    GROUP BY d.id
-")->num_rows ?? 0;
+    SELECT COUNT(*) as cnt 
+    FROM (
+        SELECT d.id
+        FROM devices d
+        LEFT JOIN patch_status p ON d.id = p.device_id
+        WHERE d.status = 'Active' 
+          AND d.last_seen > NOW() - INTERVAL 30 DAY
+        GROUP BY d.id
+        HAVING MAX(p.install_date) IS NOT NULL AND DATEDIFF(CURDATE(), MAX(p.install_date)) <= 45
+    ) as compliant_devices
+")->fetch_assoc()['cnt'] ?? 0;
 
 $outdated_total = $mysqli->query("
-    SELECT COUNT(DISTINCT d.id) as cnt 
-    FROM devices d
-    LEFT JOIN patch_status p ON d.id = p.device_id
-    WHERE d.status = 'Active' 
-      AND d.last_seen > NOW() - INTERVAL 30 DAY
-      AND (MAX(p.install_date) IS NULL OR DATEDIFF(CURDATE(), MAX(p.install_date)) > 45)
-    GROUP BY d.id
-")->num_rows ?? 0;
+    SELECT COUNT(*) as cnt 
+    FROM (
+        SELECT d.id
+        FROM devices d
+        LEFT JOIN patch_status p ON d.id = p.device_id
+        WHERE d.status = 'Active' 
+          AND d.last_seen > NOW() - INTERVAL 30 DAY
+        GROUP BY d.id
+        HAVING MAX(p.install_date) IS NULL OR DATEDIFF(CURDATE(), MAX(p.install_date)) > 45
+    ) as outdated_devices
+")->fetch_assoc()['cnt'] ?? 0;
 
 $not_responding = $mysqli->query("SELECT COUNT(*) as cnt FROM devices WHERE last_seen < NOW() - INTERVAL 30 DAY AND status = 'Active'")->fetch_assoc()['cnt'] ?? 0;
 ?>
