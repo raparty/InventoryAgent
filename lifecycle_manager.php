@@ -95,18 +95,54 @@ function handleSort(key) {
 function renderTable() {
     const start = (page - 1) * rowsPerPage;
     const items = filteredData.slice(start, start + rowsPerPage);
-    document.getElementById('lifecycleTableBody').innerHTML = items.map(d => `
-        <tr>
-            <td class="fw-bold text-primary">${d.hostname}</td>
-            <td style="font-family:monospace;">${d.serial}</td>
-            <td><span class="${d.status === 'In-Store' ? 'status-instore' : 'status-scrapped'}">${d.status}</span></td>
-            <td>${d.location_agent || 'N/A'}</td>
-            <td class="text-muted" style="font-size:11px;">${d.last_seen}</td>
-            <td class="text-end">
-                <button onclick="openActivateModal(${d.id}, '${d.hostname}')" class="btn btn-sm btn-outline-success py-0">Activate</button>
-                <a href="view_new.php?id=${d.id}" class="btn btn-sm btn-outline-primary py-0">Details</a>
-            </td>
-        </tr>`).join('');
+    document.getElementById('lifecycleTableBody').innerHTML = '';
+    if (items.length === 0) {
+        document.getElementById('lifecycleTableBody').innerHTML =
+            '<tr><td colspan="6" class="text-center py-4 text-muted">No inactive assets match the current filters.</td></tr>';
+        return;
+    }
+    items.forEach(d => {
+        const tr = document.createElement('tr');
+        const safeHostname = document.createElement('span');
+        safeHostname.textContent = d.hostname;
+        const safeSerial = document.createElement('span');
+        safeSerial.textContent = d.serial;
+        const safeLocation = document.createElement('span');
+        safeLocation.textContent = d.location_agent || 'N/A';
+        const safeLastSeen = document.createElement('span');
+        safeLastSeen.textContent = d.last_seen;
+        const statusClass = d.status === 'In-Store' ? 'status-instore' : 'status-scrapped';
+        const statusSpan = document.createElement('span');
+        statusSpan.className = statusClass;
+        statusSpan.textContent = d.status;
+
+        const activateBtn = document.createElement('button');
+        activateBtn.className = 'btn btn-sm btn-outline-success py-0';
+        activateBtn.textContent = 'Activate';
+        activateBtn.addEventListener('click', () => openActivateModal(d.id, d.hostname));
+
+        const detailsLink = document.createElement('a');
+        detailsLink.href = `view_new.php?id=${encodeURIComponent(d.id)}`;
+        detailsLink.className = 'btn btn-sm btn-outline-primary py-0';
+        detailsLink.textContent = 'Details';
+
+        tr.innerHTML = `
+            <td class="fw-bold text-primary"></td>
+            <td style="font-family:monospace;"></td>
+            <td></td>
+            <td></td>
+            <td class="text-muted" style="font-size:11px;"></td>
+            <td class="text-end"></td>`;
+        tr.cells[0].appendChild(safeHostname);
+        tr.cells[1].appendChild(safeSerial);
+        tr.cells[2].appendChild(statusSpan);
+        tr.cells[3].appendChild(safeLocation);
+        tr.cells[4].appendChild(safeLastSeen);
+        tr.cells[5].appendChild(activateBtn);
+        tr.cells[5].appendChild(document.createTextNode(' '));
+        tr.cells[5].appendChild(detailsLink);
+        document.getElementById('lifecycleTableBody').appendChild(tr);
+    });
 }
 
 function renderPager() {

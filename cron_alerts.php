@@ -9,6 +9,11 @@ require_once "config.php";
 // 1. Teams Webhook URL (configured via TEAMS_WEBHOOK_URL in .env or server environment)
 $webhook_url = TEAMS_WEBHOOK_URL;
 
+if (empty($webhook_url)) {
+    error_log("cron_alerts: TEAMS_WEBHOOK_URL is not configured. Aborting.");
+    die("Error: TEAMS_WEBHOOK_URL is not set. Configure it in your environment or .env file.");
+}
+
 // 2. Fetch Unsent Hardware Changes
 $change_list = [];
 $log_ids = [];

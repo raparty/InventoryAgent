@@ -14,6 +14,11 @@ fputcsv($out, ['Device ID','Hostname','Serial Number','Model','Manufacturer','OS
 $q = "SELECT id, hostname, serial, model, manufacturer, os_name, os_build, os_ubr FROM devices ORDER BY hostname";
 $res = $mysqli->query($q);
 
+if ($res === false) {
+    error_log("export_summary: query failed: " . $mysqli->error);
+    die("Export failed: database query error.");
+}
+
 while($r = $res->fetch_assoc()){
     fputcsv($out, [
         $r['id'],
