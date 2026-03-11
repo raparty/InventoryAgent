@@ -131,6 +131,12 @@
  * 5. Dashboard
  * ------------------------------------------------------------------ */
 .dash-container { padding: 20px; }
+.dash-refresh-bar {
+    display: flex;
+    align-items: center;
+    font-size: 12px;
+    color: #605e5c;
+}
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -146,6 +152,32 @@
 }
 .stat-card h3 { font-size: 32px; font-weight: 700; color: #005a9e; margin: 0; }
 .stat-card p  { font-size: 12px; color: #605e5c; margin: 5px 0 0 0; text-transform: uppercase; font-weight: 600; }
+
+/* Clickable stat card */
+.stat-card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+.stat-card-link:hover {
+    border-color: #005a9e;
+    box-shadow: 0 3px 8px rgba(0, 90, 158, 0.18);
+    color: inherit;
+    text-decoration: none;
+}
+
+/* Trend indicators */
+.stat-trend {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    margin-top: 6px;
+}
+.stat-trend-worse   { color: #d13438; }
+.stat-trend-better  { color: #107c10; }
+.stat-trend-neutral { color: #a19f9d; }
+
 .chart-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));

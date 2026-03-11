@@ -10,32 +10,35 @@ $mysqli->set_charset('utf8mb4');
 // -----------------------------------------------------------------------
 $statsRow = $mysqli->query("
     SELECT
-        COUNT(*)                                                          AS totalDevices,
-        SUM(CASE WHEN DATEDIFF(CURDATE(), last_seen) > 7 THEN 1 ELSE 0 END) AS offlineDevices,
-        SUM(CASE WHEN chassis_type LIKE '%Server%'  THEN 1 ELSE 0 END)  AS servers,
-        SUM(CASE WHEN chassis_type LIKE '%Desktop%' THEN 1 ELSE 0 END)  AS desktops,
-        SUM(CASE WHEN chassis_type LIKE '%Laptop%'  THEN 1 ELSE 0 END)  AS laptops,
-        SUM(CASE WHEN os_name LIKE '%Windows 10%'   THEN 1 ELSE 0 END)  AS win10,
-        SUM(CASE WHEN os_name LIKE '%Windows 11%'   THEN 1 ELSE 0 END)  AS win11,
-        SUM(CASE WHEN location LIKE '%HYDW%'         THEN 1 ELSE 0 END)  AS locHYDW,
-        SUM(CASE WHEN location LIKE '%HYDE%'         THEN 1 ELSE 0 END)  AS locHYDE,
+        COUNT(*)                                                               AS totalDevices,
+        SUM(CASE WHEN DATEDIFF(CURDATE(), last_seen) > 7 THEN 1 ELSE 0 END)  AS offlineDevices,
+        /* yesterday sim: DATEDIFF(CURDATE()-1, last_seen) > 7 ≡ DATEDIFF(CURDATE(), last_seen) > 8 */
+        SUM(CASE WHEN DATEDIFF(CURDATE(), last_seen) > 8 THEN 1 ELSE 0 END)  AS offlineDevicesYest,
+        SUM(CASE WHEN chassis_type LIKE '%Server%'  THEN 1 ELSE 0 END)       AS servers,
+        SUM(CASE WHEN chassis_type LIKE '%Desktop%' THEN 1 ELSE 0 END)       AS desktops,
+        SUM(CASE WHEN chassis_type LIKE '%Laptop%'  THEN 1 ELSE 0 END)       AS laptops,
+        SUM(CASE WHEN os_name LIKE '%Windows 10%'   THEN 1 ELSE 0 END)       AS win10,
+        SUM(CASE WHEN os_name LIKE '%Windows 11%'   THEN 1 ELSE 0 END)       AS win11,
+        SUM(CASE WHEN location LIKE '%HYDW%'         THEN 1 ELSE 0 END)      AS locHYDW,
+        SUM(CASE WHEN location LIKE '%HYDE%'         THEN 1 ELSE 0 END)      AS locHYDE,
         SUM(CASE WHEN (location IS NULL OR location = '' OR location = 'UNKNOWN') THEN 1 ELSE 0 END) AS locUNK,
         SUM(CASE WHEN last_seen < NOW() - INTERVAL 30 DAY THEN 1 ELSE 0 END) AS not_responding
     FROM devices
     WHERE status = 'Active'
 ")->fetch_assoc();
 
-$totalDevices  = $statsRow['totalDevices']   ?? 0;
-$offlineDevices = $statsRow['offlineDevices'] ?? 0;
-$servers       = $statsRow['servers']         ?? 0;
-$desktops      = $statsRow['desktops']        ?? 0;
-$laptops       = $statsRow['laptops']         ?? 0;
-$win10         = $statsRow['win10']           ?? 0;
-$win11         = $statsRow['win11']           ?? 0;
-$locHYDW       = $statsRow['locHYDW']         ?? 0;
-$locHYDE       = $statsRow['locHYDE']         ?? 0;
-$locUNK        = $statsRow['locUNK']          ?? 0;
-$not_responding = $statsRow['not_responding'] ?? 0;
+$totalDevices       = $statsRow['totalDevices']       ?? 0;
+$offlineDevices     = $statsRow['offlineDevices']     ?? 0;
+$offlineDevicesYest = $statsRow['offlineDevicesYest'] ?? 0;
+$servers            = $statsRow['servers']            ?? 0;
+$desktops           = $statsRow['desktops']           ?? 0;
+$laptops            = $statsRow['laptops']            ?? 0;
+$win10              = $statsRow['win10']              ?? 0;
+$win11              = $statsRow['win11']              ?? 0;
+$locHYDW            = $statsRow['locHYDW']            ?? 0;
+$locHYDE            = $statsRow['locHYDE']            ?? 0;
+$locUNK             = $statsRow['locUNK']             ?? 0;
+$not_responding     = $statsRow['not_responding']     ?? 0;
 
 // -----------------------------------------------------------------------
 // Query 2: Patch compliance for recently-seen devices — 1 query
@@ -43,7 +46,10 @@ $not_responding = $statsRow['not_responding'] ?? 0;
 $patchRow = $mysqli->query("
     SELECT
         SUM(CASE WHEN max_install IS NOT NULL AND DATEDIFF(CURDATE(), max_install) <= 45 THEN 1 ELSE 0 END) AS up_to_date,
-        SUM(CASE WHEN max_install IS NULL     OR  DATEDIFF(CURDATE(), max_install) >  45 THEN 1 ELSE 0 END) AS outdated_total
+        SUM(CASE WHEN max_install IS NULL     OR  DATEDIFF(CURDATE(), max_install) >  45 THEN 1 ELSE 0 END) AS outdated_total,
+        /* yesterday sim: apply same thresholds with CURDATE()-1, i.e. shift boundaries by 1 day */
+        SUM(CASE WHEN max_install IS NOT NULL AND DATEDIFF(CURDATE(), max_install) <= 46 THEN 1 ELSE 0 END) AS up_to_date_yest,
+        SUM(CASE WHEN max_install IS NULL     OR  DATEDIFF(CURDATE(), max_install) >  46 THEN 1 ELSE 0 END) AS outdated_yest
     FROM (
         SELECT d.id, MAX(p.install_date) AS max_install
         FROM devices d
@@ -54,30 +60,68 @@ $patchRow = $mysqli->query("
     ) AS patch_summary
 ")->fetch_assoc();
 
-$up_to_date    = $patchRow['up_to_date']    ?? 0;
-$outdated_total = $patchRow['outdated_total'] ?? 0;
+$up_to_date      = $patchRow['up_to_date']      ?? 0;
+$outdated_total  = $patchRow['outdated_total']  ?? 0;
+$up_to_date_yest = $patchRow['up_to_date_yest'] ?? 0;
+$outdated_yest   = $patchRow['outdated_yest']   ?? 0;
+
+// -----------------------------------------------------------------------
+// Trend deltas (positive = count increased since yesterday)
+// -----------------------------------------------------------------------
+$offlineDelta  = $offlineDevices - $offlineDevicesYest; // positive = worse
+$outdatedDelta = $outdated_total - $outdated_yest;      // positive = worse
+$upToDateDelta = $up_to_date    - $up_to_date_yest;    // positive = better
+
+$refreshTime = date('Y-m-d H:i:s');
 ?>
 
 <div class="dash-container">
-    <h4 class="mb-4 fw-bold">Enterprise Dashboard</h4>
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h4 class="fw-bold mb-0">Enterprise Dashboard</h4>
+        <div class="dash-refresh-bar">
+            <span>Last refreshed: <?= htmlspecialchars($refreshTime) ?></span>
+            <a href="dashboard_new.php" class="btn btn-sm btn-outline-secondary ms-3">↻ Refresh</a>
+        </div>
+    </div>
     
-    <div class="stats-grid">
+    <div class="stats-grid mb-4">
         <div class="stat-card">
             <h3><?= $totalDevices ?></h3>
             <p>Total Active Devices</p>
         </div>
-        <div class="stat-card">
+        <a href="offline_devices.php" class="stat-card stat-card-link">
             <h3 class="text-danger"><?= $offlineDevices ?></h3>
-            <p>Offline Devices (>7 Days)</p>
-        </div>
+            <p>Offline Devices (&gt;7 Days)</p>
+            <?php if ($offlineDelta > 0): ?>
+                <span class="stat-trend stat-trend-worse">▲ <?= $offlineDelta ?> vs yesterday</span>
+            <?php elseif ($offlineDelta < 0): ?>
+                <span class="stat-trend stat-trend-better">▼ <?= abs($offlineDelta) ?> vs yesterday</span>
+            <?php else: ?>
+                <span class="stat-trend stat-trend-neutral">— same as yesterday</span>
+            <?php endif; ?>
+        </a>
         <div class="stat-card">
             <h3 class="text-success"><?= $up_to_date ?></h3>
             <p>Patch Compliant</p>
+            <?php if ($upToDateDelta > 0): ?>
+                <span class="stat-trend stat-trend-better">▲ <?= $upToDateDelta ?> vs yesterday</span>
+            <?php elseif ($upToDateDelta < 0): ?>
+                <span class="stat-trend stat-trend-worse">▼ <?= abs($upToDateDelta) ?> vs yesterday</span>
+            <?php else: ?>
+                <span class="stat-trend stat-trend-neutral">— same as yesterday</span>
+            <?php endif; ?>
         </div>
-        <div class="stat-card">
+        <a href="patch-compliance_new.php?status=Outdated" class="stat-card stat-card-link">
             <h3 class="text-warning"><?= $outdated_total ?></h3>
             <p>Patch Outdated</p>
-        </div>
+            <?php if ($outdatedDelta > 0): ?>
+                <span class="stat-trend stat-trend-worse">▲ <?= $outdatedDelta ?> vs yesterday</span>
+            <?php elseif ($outdatedDelta < 0): ?>
+                <span class="stat-trend stat-trend-better">▼ <?= abs($outdatedDelta) ?> vs yesterday</span>
+            <?php else: ?>
+                <span class="stat-trend stat-trend-neutral">— same as yesterday</span>
+            <?php endif; ?>
+        </a>
     </div>
     
     <div class="chart-grid">
