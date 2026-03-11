@@ -78,17 +78,9 @@ if (count($snapshots) < 2) {
 $idA = intval($_GET['a'] ?? $snapshots[1]['id']);
 $idB = intval($_GET['b'] ?? $snapshots[0]['id']);
 
-// Function to fetch specific snapshot JSON
-function get_snapshot_fast($mysqli, $sid, $did) {
-    $stmt = $mysqli->prepare("SELECT raw_json FROM device_history WHERE id = ? AND device_id = ? LIMIT 1");
-    $stmt->bind_param("ii", $sid, $did);
-    $stmt->execute();
-    $res = $stmt->get_result()->fetch_assoc();
-    return $res ? json_decode($res['raw_json'], true) : [];
-}
-
-$dataA = get_snapshot_fast($mysqli, $idA, $device_id);
-$dataB = get_snapshot_fast($mysqli, $idB, $device_id);
+$snapshotService = new \InventoryAgent\SnapshotService($mysqli);
+$dataA = $snapshotService->getSnapshot($idA, $device_id);
+$dataB = $snapshotService->getSnapshot($idB, $device_id);
 $keys = array_unique(array_merge(array_keys($dataA), array_keys($dataB)));
 sort($keys);
 ?>

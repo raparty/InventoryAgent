@@ -13,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
     $qty = (int)$_POST['quantity'];
     $modifier = strtolower(trim($mysqli->real_escape_string($_POST['modified_by'])));
 
-    if (!str_ends_with($modifier, '-adm')) {
+    if (!\InventoryAgent\AdminValidator::isValid($modifier)) {
         $message = "<div class='alert alert-danger mx-3 shadow-sm'>Admin ID (-adm) required.</div>";
     } else {
         // Update Balance
