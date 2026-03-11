@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/vendor/autoload.php';
 require_once "config.php";
 $pageTitle = "Device History Comparison";
 include "header_new.php"; // 3) Updated to header_new.php

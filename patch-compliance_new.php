@@ -34,7 +34,11 @@ $query = "
       AND d.last_seen > NOW() - INTERVAL 30 DAY
     GROUP BY d.id
     ORDER BY 
-        CASE WHEN status = 'Outdated' THEN 1 WHEN status = 'Syncing' THEN 2 ELSE 3 END ASC, 
+        CASE 
+            WHEN MAX(p.install_date) IS NULL AND DATEDIFF(CURDATE(), d.last_seen) <= 14 THEN 2
+            WHEN MAX(p.install_date) IS NOT NULL AND DATEDIFF(CURDATE(), MAX(p.install_date)) <= 45 THEN 3
+            ELSE 1
+        END ASC, 
         d.hostname ASC
 ";
 
@@ -130,6 +134,11 @@ function handleSort(key) {
 function renderTable() {
     const start = (page - 1) * rowsPerPage;
     const items = filteredData.slice(start, start + rowsPerPage);
+    if (items.length === 0) {
+        document.getElementById('patchTableBody').innerHTML =
+            '<tr><td colspan="6" class="text-center py-4 text-muted">No devices match the current filters.</td></tr>';
+        return;
+    }
     document.getElementById('patchTableBody').innerHTML = items.map(d => `
         <tr>
             <td><span class="host-text">${d.hostname}</span><span class="site-text">${d.location_agent || 'N/A'}</span></td>

@@ -100,6 +100,11 @@ function handleSort(key) {
 function renderTable() {
     const start = (page - 1) * rowsPerPage;
     const items = filteredData.slice(start, start + rowsPerPage);
+    if (items.length === 0) {
+        document.getElementById('drillTableBody').innerHTML =
+            '<tr><td colspan="7" class="text-center py-4 text-muted">No records match the current filters.</td></tr>';
+        return;
+    }
     document.getElementById('drillTableBody').innerHTML = items.map(d => `
         <tr>
             <td><span class="host-text">${d.hostname}</span></td>

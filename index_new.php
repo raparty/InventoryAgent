@@ -25,6 +25,7 @@ $devices = $res->fetch_all(MYSQLI_ASSOC);
     <input type="text" id="searchSerial" class="form-control form-control-sm" style="width:130px" placeholder="Serial...">
     <input type="text" id="searchUBR" class="form-control form-control-sm" style="width:100px" placeholder="UBR...">
     <button class="btn btn-sm btn-secondary" onclick="resetFilters()">Reset</button>
+    <button class="btn btn-sm btn-success ms-auto" onclick="exportCSV()">Export CSV</button>
 </div>
 
 <div class="ent-container">
@@ -76,6 +77,12 @@ function refreshUI() {
 function renderTable() {
     const start = (currentPage - 1) * rowsPerPage;
     const items = filteredData.slice(start, start + rowsPerPage);
+    
+    if (items.length === 0) {
+        document.getElementById('deviceTableBody').innerHTML =
+            '<tr><td colspan="6" class="text-center py-4 text-muted">No devices match the current filters.</td></tr>';
+        return;
+    }
     
     // Updated to use location_agent as per your table structure
     document.getElementById('deviceTableBody').innerHTML = items.map(d => `
@@ -136,6 +143,21 @@ function resetFilters() {
     document.getElementById('searchSerial').value = '';
     document.getElementById('searchUBR').value = '';
     refreshUI();
+}
+
+function exportCSV() {
+    if (filteredData.length === 0) { alert("No data to export."); return; }
+    let csv = "Hostname,Location,Serial,Chassis,OS Name,UBR\n";
+    filteredData.forEach(d => {
+        csv += `"${d.hostname || ''}","${d.location_agent || d.location || 'N/A'}","${d.serial || ''}","${d.chassis_type || ''}","${d.os_name || ''}","${d.os_ubr || ''}"\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute("download", `Inventory_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 
 document.getElementById('searchHost').addEventListener('input', () => { currentPage = 1; refreshUI(); });
