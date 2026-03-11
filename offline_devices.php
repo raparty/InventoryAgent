@@ -12,6 +12,7 @@ $query = "
     SELECT id, hostname, serial, location, last_seen, chassis_type
     FROM devices 
     WHERE DATEDIFF(CURDATE(), last_seen) > 7
+      AND status = 'Active'
     ORDER BY last_seen ASC
 ";
 

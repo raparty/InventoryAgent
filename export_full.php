@@ -86,14 +86,12 @@ while ($d = $devices->fetch_assoc()) {
         // Monitor 1
         $m1["monitor_model"],
         $m1["monitor_serial"],
+        $m1["monitor_asset_tag"],
 
         // Monitor 2
         $m2["monitor_model"],
         $m2["monitor_serial"],
-
-        // Monitor asset tags
-        $m1["monitor_asset_tag"],
-        $m2["monitor_asset_tag"]
+        $m2["monitor_asset_tag"],
     ]);
 }
 

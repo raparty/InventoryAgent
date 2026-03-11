@@ -5,52 +5,57 @@ include "header_new.php";
 
 $mysqli->set_charset('utf8mb4');
 
-// Fetch dashboard statistics
-$totalDevices = $mysqli->query("SELECT COUNT(*) as cnt FROM devices WHERE status = 'Active'")->fetch_assoc()['cnt'] ?? 0;
-$offlineDevices = $mysqli->query("SELECT COUNT(*) as cnt FROM devices WHERE DATEDIFF(CURDATE(), last_seen) > 7 AND status = 'Active'")->fetch_assoc()['cnt'] ?? 0;
+// -----------------------------------------------------------------------
+// Query 1: Device counts (total, offline, type, OS, location) — 1 query
+// -----------------------------------------------------------------------
+$statsRow = $mysqli->query("
+    SELECT
+        COUNT(*)                                                          AS totalDevices,
+        SUM(CASE WHEN DATEDIFF(CURDATE(), last_seen) > 7 THEN 1 ELSE 0 END) AS offlineDevices,
+        SUM(CASE WHEN chassis_type LIKE '%Server%'  THEN 1 ELSE 0 END)  AS servers,
+        SUM(CASE WHEN chassis_type LIKE '%Desktop%' THEN 1 ELSE 0 END)  AS desktops,
+        SUM(CASE WHEN chassis_type LIKE '%Laptop%'  THEN 1 ELSE 0 END)  AS laptops,
+        SUM(CASE WHEN os_name LIKE '%Windows 10%'   THEN 1 ELSE 0 END)  AS win10,
+        SUM(CASE WHEN os_name LIKE '%Windows 11%'   THEN 1 ELSE 0 END)  AS win11,
+        SUM(CASE WHEN location LIKE '%HYDW%'         THEN 1 ELSE 0 END)  AS locHYDW,
+        SUM(CASE WHEN location LIKE '%HYDE%'         THEN 1 ELSE 0 END)  AS locHYDE,
+        SUM(CASE WHEN (location IS NULL OR location = '' OR location = 'UNKNOWN') THEN 1 ELSE 0 END) AS locUNK,
+        SUM(CASE WHEN last_seen < NOW() - INTERVAL 30 DAY THEN 1 ELSE 0 END) AS not_responding
+    FROM devices
+    WHERE status = 'Active'
+")->fetch_assoc();
 
-// Device type distribution
-$servers = $mysqli->query("SELECT COUNT(*) as cnt FROM devices WHERE chassis_type LIKE '%Server%' AND status = 'Active'")->fetch_assoc()['cnt'] ?? 0;
-$desktops = $mysqli->query("SELECT COUNT(*) as cnt FROM devices WHERE chassis_type LIKE '%Desktop%' AND status = 'Active'")->fetch_assoc()['cnt'] ?? 0;
-$laptops = $mysqli->query("SELECT COUNT(*) as cnt FROM devices WHERE chassis_type LIKE '%Laptop%' AND status = 'Active'")->fetch_assoc()['cnt'] ?? 0;
+$totalDevices  = $statsRow['totalDevices']   ?? 0;
+$offlineDevices = $statsRow['offlineDevices'] ?? 0;
+$servers       = $statsRow['servers']         ?? 0;
+$desktops      = $statsRow['desktops']        ?? 0;
+$laptops       = $statsRow['laptops']         ?? 0;
+$win10         = $statsRow['win10']           ?? 0;
+$win11         = $statsRow['win11']           ?? 0;
+$locHYDW       = $statsRow['locHYDW']         ?? 0;
+$locHYDE       = $statsRow['locHYDE']         ?? 0;
+$locUNK        = $statsRow['locUNK']          ?? 0;
+$not_responding = $statsRow['not_responding'] ?? 0;
 
-// OS distribution
-$win10 = $mysqli->query("SELECT COUNT(*) as cnt FROM devices WHERE os_name LIKE '%Windows 10%' AND status = 'Active'")->fetch_assoc()['cnt'] ?? 0;
-$win11 = $mysqli->query("SELECT COUNT(*) as cnt FROM devices WHERE os_name LIKE '%Windows 11%' AND status = 'Active'")->fetch_assoc()['cnt'] ?? 0;
-
-// Location distribution
-$locHYDW = $mysqli->query("SELECT COUNT(*) as cnt FROM devices WHERE location LIKE '%HYDW%' AND status = 'Active'")->fetch_assoc()['cnt'] ?? 0;
-$locHYDE = $mysqli->query("SELECT COUNT(*) as cnt FROM devices WHERE location LIKE '%HYDE%' AND status = 'Active'")->fetch_assoc()['cnt'] ?? 0;
-$locUNK = $mysqli->query("SELECT COUNT(*) as cnt FROM devices WHERE (location IS NULL OR location = '' OR location = 'UNKNOWN') AND status = 'Active'")->fetch_assoc()['cnt'] ?? 0;
-
-// Patch compliance stats - Fixed SQL aggregation issues
-$up_to_date = $mysqli->query("
-    SELECT COUNT(*) as cnt 
+// -----------------------------------------------------------------------
+// Query 2: Patch compliance for recently-seen devices — 1 query
+// -----------------------------------------------------------------------
+$patchRow = $mysqli->query("
+    SELECT
+        SUM(CASE WHEN max_install IS NOT NULL AND DATEDIFF(CURDATE(), max_install) <= 45 THEN 1 ELSE 0 END) AS up_to_date,
+        SUM(CASE WHEN max_install IS NULL     OR  DATEDIFF(CURDATE(), max_install) >  45 THEN 1 ELSE 0 END) AS outdated_total
     FROM (
-        SELECT d.id
+        SELECT d.id, MAX(p.install_date) AS max_install
         FROM devices d
         LEFT JOIN patch_status p ON d.id = p.device_id
-        WHERE d.status = 'Active' 
+        WHERE d.status = 'Active'
           AND d.last_seen > NOW() - INTERVAL 30 DAY
         GROUP BY d.id
-        HAVING MAX(p.install_date) IS NOT NULL AND DATEDIFF(CURDATE(), MAX(p.install_date)) <= 45
-    ) as compliant_devices
-")->fetch_assoc()['cnt'] ?? 0;
+    ) AS patch_summary
+")->fetch_assoc();
 
-$outdated_total = $mysqli->query("
-    SELECT COUNT(*) as cnt 
-    FROM (
-        SELECT d.id
-        FROM devices d
-        LEFT JOIN patch_status p ON d.id = p.device_id
-        WHERE d.status = 'Active' 
-          AND d.last_seen > NOW() - INTERVAL 30 DAY
-        GROUP BY d.id
-        HAVING MAX(p.install_date) IS NULL OR DATEDIFF(CURDATE(), MAX(p.install_date)) > 45
-    ) as outdated_devices
-")->fetch_assoc()['cnt'] ?? 0;
-
-$not_responding = $mysqli->query("SELECT COUNT(*) as cnt FROM devices WHERE last_seen < NOW() - INTERVAL 30 DAY AND status = 'Active'")->fetch_assoc()['cnt'] ?? 0;
+$up_to_date    = $patchRow['up_to_date']    ?? 0;
+$outdated_total = $patchRow['outdated_total'] ?? 0;
 ?>
 
 <style>
@@ -112,5 +117,98 @@ $not_responding = $mysqli->query("SELECT COUNT(*) as cnt FROM devices WHERE last
         </div>
     </div>
 </div>
+
+<script>
+// ---------------------------
+//  DEVICE TYPE DISTRIBUTION
+// ---------------------------
+new Chart(document.getElementById('chartDeviceType'), {
+    type: 'pie',
+    data: {
+        labels: ['Server', 'Desktop', 'Laptop'],
+        datasets: [{
+            data: [<?= $servers ?>, <?= $desktops ?>, <?= $laptops ?>],
+            backgroundColor: ['#3b82f6', '#f06292', '#ffa726'],
+            borderWidth: 0
+        }]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+});
+
+// ---------------------------
+//  OS DISTRIBUTION
+// ---------------------------
+new Chart(document.getElementById('chartOS'), {
+    type: 'doughnut',
+    data: {
+        labels: ['Windows 10', 'Windows 11'],
+        datasets: [{
+            data: [<?= $win10 ?>, <?= $win11 ?>],
+            backgroundColor: ['#4e79a7', '#f28e2b'],
+            borderWidth: 0
+        }]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+});
+
+// ---------------------------
+//  LOCATION SHARE PIE
+// ---------------------------
+new Chart(document.getElementById('chartLocationShare'), {
+    type: 'pie',
+    data: {
+        labels: ['HYDW', 'HYDE', 'UNKNOWN'],
+        datasets: [{
+            data: [<?= $locHYDW ?>, <?= $locHYDE ?>, <?= $locUNK ?>],
+            backgroundColor: ['#66bb6a', '#42a5f5', '#9e9e9e'],
+            borderWidth: 0
+        }]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+});
+
+// ---------------------------
+//  PATCH COMPLIANCE BREAKDOWN (DONUT)
+// ---------------------------
+new Chart(document.getElementById('chartPatchPie'), {
+    type: 'doughnut',
+    data: {
+        labels: ['Up-to-date', 'Outdated', 'No Data'],
+        datasets: [{
+            data: [<?= $up_to_date ?>, <?= $outdated_total ?>, <?= $not_responding ?>],
+            backgroundColor: ['#3bb77e','#f6a623','#9aa0a6'],
+            borderWidth: 0
+        }]
+    },
+    options: {
+        responsive: true,
+        cutout: '65%',
+        plugins: { legend: { position: 'bottom' } }
+    }
+});
+
+// ---------------------------
+//  PATCH STATUS BAR
+// ---------------------------
+new Chart(document.getElementById('chartPatchBar'), {
+    type: 'bar',
+    data: {
+        labels: ['Up-to-date', 'Outdated', 'No Data'],
+        datasets: [{
+            label: 'Systems',
+            data: [<?= $up_to_date ?>, <?= $outdated_total ?>, <?= $not_responding ?>],
+            backgroundColor: ['#3bb77e','#f6a623','#9aa0a6'],
+            borderWidth: 0
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+            y: { beginAtZero: true, ticks: { stepSize: 50 } }
+        }
+    }
+});
+</script>
 
 <?php include "footer.php"; ?>
