@@ -62,7 +62,8 @@ if (!$update->execute() || $update->affected_rows < 1) {
 $log = $mysqli->prepare(
     "INSERT INTO device_change_logs (device_id, change_type, old_value, new_value) VALUES (?, 'Status Change', ?, 'Active')"
 );
-$oldStatus = $device['status'] ?? 'Unknown';
+// $device['status'] is guaranteed non-null by the schema (NOT NULL column), but we guard defensively
+$oldStatus = !empty($device['status']) ? $device['status'] : 'In-Store';
 $log->bind_param("is", $id, $oldStatus);
 $log->execute();
 

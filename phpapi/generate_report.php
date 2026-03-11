@@ -38,6 +38,14 @@ header('Content-Disposition: attachment; filename="' . $filename . '"');
 
 $out = fopen('php://output', 'w');
 
+/**
+ * Escape special LIKE pattern characters so user input is treated as literal text.
+ */
+function like_escape(string $value): string
+{
+    return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
+}
+
 switch ($report_type) {
 
     // ------------------------------------------------------------------
@@ -78,7 +86,7 @@ switch ($report_type) {
             break;
         }
         fputcsv($out, ['Hostname', 'Serial', 'Location', 'Software Name', 'Version', 'Install Date']);
-        $like = '%' . $sw_name . '%';
+        $like = '%' . like_escape($sw_name) . '%';
         $stmt = $mysqli->prepare(
             "SELECT d.hostname, d.serial, d.location, s.software_name, s.version, s.install_date
              FROM installed_software s
@@ -122,7 +130,7 @@ switch ($report_type) {
         $os = isset($_GET['os']) ? trim($_GET['os']) : '';
         fputcsv($out, ['Hostname', 'Serial', 'OS Name', 'OS Build', 'UBR', 'Location', 'Last Seen']);
         if ($os !== '') {
-            $like = '%' . $os . '%';
+            $like = '%' . like_escape($os) . '%';
             $stmt = $mysqli->prepare(
                 "SELECT hostname, serial, os_name, os_build, os_ubr, location, last_seen
                  FROM devices WHERE os_name LIKE ? AND status = 'Active' ORDER BY hostname"
@@ -162,7 +170,7 @@ switch ($report_type) {
         $mfr = isset($_GET['manufacturer']) ? trim($_GET['manufacturer']) : '';
         fputcsv($out, ['Hostname', 'Serial', 'Manufacturer', 'Model', 'Chassis', 'Location', 'Last Seen']);
         if ($mfr !== '') {
-            $like = '%' . $mfr . '%';
+            $like = '%' . like_escape($mfr) . '%';
             $stmt = $mysqli->prepare(
                 "SELECT hostname, serial, manufacturer, model, chassis_type, location, last_seen
                  FROM devices WHERE manufacturer LIKE ? AND status = 'Active' ORDER BY hostname"
@@ -186,7 +194,7 @@ switch ($report_type) {
         $model = isset($_GET['model']) ? trim($_GET['model']) : '';
         fputcsv($out, ['Hostname', 'Serial', 'Model', 'Manufacturer', 'Location', 'Last Seen']);
         if ($model !== '') {
-            $like = '%' . $model . '%';
+            $like = '%' . like_escape($model) . '%';
             $stmt = $mysqli->prepare(
                 "SELECT hostname, serial, model, manufacturer, location, last_seen
                  FROM devices WHERE model LIKE ? AND status = 'Active' ORDER BY hostname"

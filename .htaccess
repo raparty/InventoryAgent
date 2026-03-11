@@ -33,6 +33,9 @@
     Header always set X-Frame-Options "SAMEORIGIN"
     Header always set X-XSS-Protection "1; mode=block"
     Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    # Note: 'unsafe-inline' is required because the current application embeds
+    # JavaScript and CSS inline throughout its PHP templates. Removing it would
+    # require a larger refactor to move all inline scripts/styles to external files.
     Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net; img-src 'self' data:;"
 </IfModule>
 

@@ -21,7 +21,9 @@ if (mb_strlen($q) < 2) {
     exit;
 }
 
-$like = '%' . $q . '%';
+// Escape LIKE special characters to prevent unexpected wildcard expansion
+$q_escaped = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $q);
+$like = '%' . $q_escaped . '%';
 $stmt = $mysqli->prepare(
     "SELECT DISTINCT software_name
      FROM installed_software
