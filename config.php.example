@@ -6,6 +6,11 @@
  * config.php will load them automatically via phpdotenv.
  */
 
+// Start session early for CSRF token support
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 require_once __DIR__ . '/vendor/autoload.php';
 
 // Load .env when it exists (local dev / Docker / CI).

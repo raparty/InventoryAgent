@@ -64,7 +64,6 @@ $devices = ($res) ? $res->fetch_all(MYSQLI_ASSOC) : [];
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 const rawData = <?= json_encode($devices) ?>;
 let filteredData = [...rawData];

@@ -8,41 +8,57 @@ $mysqli->set_charset('utf8mb4');
 /** 1. HANDLE POST TRANSACTIONS **/
 $message = "";
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
-    $cat = $mysqli->real_escape_string($_POST['category']);
-    $model = $mysqli->real_escape_string($_POST['model_name']);
-    $qty = (int)$_POST['quantity'];
-    $modifier = strtolower(trim($mysqli->real_escape_string($_POST['modified_by'])));
-
-    if (!\InventoryAgent\AdminValidator::isValid($modifier)) {
-        $message = "<div class='alert alert-danger mx-3 shadow-sm'>Admin ID (-adm) required.</div>";
+    // Validate CSRF token
+    if (empty($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'])) {
+        $message = "<div class='alert alert-danger mx-3 shadow-sm'>Invalid request. Please try again.</div>";
     } else {
-        // Update Balance
-        if ($_POST['action'] == 'receive') {
-            $stmt = $mysqli->prepare("INSERT INTO stock_inventory (category, model_name, current_stock, modified_by) 
-                    VALUES (?, ?, ?, ?) 
-                    ON DUPLICATE KEY UPDATE current_stock = current_stock + ?, modified_by = ?");
-            $stmt->bind_param("ssiisi", $cat, $model, $qty, $modifier, $qty, $modifier);
+        $cat = $_POST['category'];
+        $model = $_POST['model_name'];
+        $qty = (int)$_POST['quantity'];
+        $modifier = strtolower(trim($_POST['modified_by']));
+
+        if ($qty <= 0) {
+            $message = "<div class='alert alert-danger mx-3 shadow-sm'>Quantity must be greater than zero.</div>";
+        } elseif (!\InventoryAgent\AdminValidator::isValid($modifier)) {
+            $message = "<div class='alert alert-danger mx-3 shadow-sm'>Admin ID (-adm) required.</div>";
         } else {
-            $stmt = $mysqli->prepare("UPDATE stock_inventory SET current_stock = current_stock - ?, modified_by = ? 
-                    WHERE model_name = ? AND current_stock >= ?");
-            $stmt->bind_param("issi", $qty, $modifier, $model, $qty);
-        }
-        
-        if ($stmt->execute()) {
-            // Log the Transaction for Audit
-            $item_stmt = $mysqli->prepare("SELECT id FROM stock_inventory WHERE model_name = ?");
-            $item_stmt->bind_param("s", $model);
-            $item_stmt->execute();
-            $item_res = $item_stmt->get_result();
-            $item_id = $item_res->fetch_assoc()['id'];
-            $act_label = ($_POST['action'] == 'receive') ? 'Receive' : 'Issue';
-            $log_stmt = $mysqli->prepare("INSERT INTO stock_logs (item_id, action_type, quantity, admin_user) VALUES (?, ?, ?, ?)");
-            $log_stmt->bind_param("isis", $item_id, $act_label, $qty, $modifier);
-            $log_stmt->execute();
-            $message = "<div class='alert alert-success mx-3 shadow-sm'>Successfully logged: $act_label $qty x " . htmlspecialchars($model) . "</div>";
+            // Update Balance
+            if ($_POST['action'] == 'receive') {
+                $stmt = $mysqli->prepare("INSERT INTO stock_inventory (category, model_name, current_stock, modified_by) 
+                        VALUES (?, ?, ?, ?) 
+                        ON DUPLICATE KEY UPDATE current_stock = current_stock + ?, modified_by = ?");
+                $stmt->bind_param("ssiisi", $cat, $model, $qty, $modifier, $qty, $modifier);
+            } else {
+                $stmt = $mysqli->prepare("UPDATE stock_inventory SET current_stock = current_stock - ?, modified_by = ? 
+                        WHERE model_name = ? AND current_stock >= ?");
+                $stmt->bind_param("issi", $qty, $modifier, $model, $qty);
+            }
+            
+            if ($stmt->execute()) {
+                // Log the Transaction for Audit
+                $item_stmt = $mysqli->prepare("SELECT id FROM stock_inventory WHERE model_name = ?");
+                $item_stmt->bind_param("s", $model);
+                $item_stmt->execute();
+                $item_res = $item_stmt->get_result();
+                $item_row = $item_res->fetch_assoc();
+                $act_label = ($_POST['action'] == 'receive') ? 'Receive' : 'Issue';
+                if ($item_row !== null) {
+                    $item_id = $item_row['id'];
+                    $log_stmt = $mysqli->prepare("INSERT INTO stock_logs (item_id, action_type, quantity, admin_user) VALUES (?, ?, ?, ?)");
+                    $log_stmt->bind_param("isis", $item_id, $act_label, $qty, $modifier);
+                    $log_stmt->execute();
+                }
+                $message = "<div class='alert alert-success mx-3 shadow-sm'>Successfully logged: $act_label $qty x " . htmlspecialchars($model) . "</div>";
+            }
         }
     }
 }
+
+// Generate CSRF token for the form
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+$csrf_token = $_SESSION['csrf_token'];
 
 /** 2. FETCH DATA FOR UI **/
 $inventory = $mysqli->query("SELECT * FROM stock_inventory ORDER BY category ASC, model_name ASC")->fetch_all(MYSQLI_ASSOC);
@@ -55,6 +71,7 @@ $logs = $mysqli->query("SELECT l.*, i.model_name FROM stock_logs l JOIN stock_in
             <div class="ent-header" style="color: #005a9e;">Stock Action</div>
             <div class="p-3">
                 <form method="POST">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token) ?>">
                     <label class="small fw-bold text-muted">Transaction</label>
                     <select name="action" class="form-select form-select-sm mb-2">
                         <option value="receive">Receive Stock (+)</option>
@@ -84,7 +101,7 @@ $logs = $mysqli->query("SELECT l.*, i.model_name FROM stock_logs l JOIN stock_in
                         </div>
                     </div>
 
-                    <button type="submit" class="btn btn-sm btn-primary w-100 fw-bold">Execute Update</button>
+                    <button type="submit" class="btn btn-sm btn-primary w-100 fw-bold" onclick="return (parseInt(this.form.quantity.value,10)>0)||alert('Quantity must be greater than zero.')">Execute Update</button>
                 </form>
             </div>
         </div>

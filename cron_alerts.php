@@ -6,8 +6,8 @@
 
 require_once "config.php";
 
-// 1. Teams Webhook URL
-$webhook_url = "https://getyardstick.webhook.office.com/webhookb2/4d63d8cf-86a7-4d65-9f86-6141c160b4d5@b4f407c4-ec13-40d9-9271-ea0eaf7fac6e/IncomingWebhook/de9534f31d794cbb983da009fe1719ae/1e365108-4bb4-44a0-a05f-7f389d20d2b2/V2urSTwgwVSjb0AAbDj3-cbdD6bxkZ7EY0_INGn12xVkE1";
+// 1. Teams Webhook URL (configured via TEAMS_WEBHOOK_URL in .env or server environment)
+$webhook_url = TEAMS_WEBHOOK_URL;
 
 // 2. Fetch Unsent Hardware Changes
 $change_list = [];
@@ -113,12 +113,15 @@ $context = stream_context_create($options);
 $result = file_get_contents($webhook_url, false, $context);
 
 // 8. Mark logs as Sent to prevent duplicates tomorrow
-if ($result !== FALSE && !empty($log_ids)) {
+if ($result !== false && !empty($log_ids)) {
     // Sanitize log IDs to prevent SQL injection
     $log_ids = array_map('intval', $log_ids);
     $ids_string = implode(',', $log_ids);
     $mysqli->query("UPDATE device_change_logs SET is_sent = 1 WHERE id IN ($ids_string)");
     echo "Summary successfully sent to Teams.";
+} elseif ($result === false) {
+    error_log("cron_alerts: Failed to send Teams notification to webhook.");
+    echo "Failed to send Teams notification. Check error log for details.";
 } else {
     echo "Report generated. No new changes found to send.";
 }
