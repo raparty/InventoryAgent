@@ -20,22 +20,6 @@ $res = $mysqli->query($query);
 $offlineData = $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
 ?>
 
-<style>
-/* Enterprise Grid Styling */
-.ent-container { background: #fff; border: 1px solid #d2d0ce; margin: 15px; overflow-x: auto; }
-.ent-table { width: 100%; border-collapse: collapse; table-layout: auto; }
-.ent-table th, .ent-table td { border: 1px solid #d2d0ce !important; padding: 6px 10px !important; font-size: 11px; white-space: nowrap; }
-.ent-table th { background: #2b3b4c; color: #fff; text-transform: uppercase; cursor: pointer; text-align: left; }
-
-.host-text { color: #000; font-weight: 700; }
-.date-stale { color: #d13438; font-weight: 600; }
-.chassis-badge { background: #f3f2f1; color: #323130; padding: 2px 6px; border-radius: 4px; font-size: 10px; border: 1px solid #d2d0ce; }
-
-.ent-pagination { display: flex !important; justify-content: center; align-items: center; gap: 4px; padding: 10px; background: #fff; border: 1px solid #d2d0ce; border-top: none; }
-.ent-page-btn { min-width: 28px; height: 28px; border: 1px solid #d2d0ce; background: #fff; font-size: 11px; display: flex; align-items: center; justify-content: center; color: #333; cursor: pointer; }
-.ent-page-btn.active { background: #005a9e; color: #fff; border-color: #005a9e; }
-</style>
-
 <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center">
     <div>
         <h5 class="mb-0 fw-bold">Offline Devices (> 7 Days)</h5>

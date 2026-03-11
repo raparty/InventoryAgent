@@ -85,17 +85,6 @@ $keys = array_unique(array_merge(array_keys($dataA), array_keys($dataB)));
 sort($keys);
 ?>
 
-<style>
-.comp-wrapper { padding: 20px; }
-.info-strip { background: #fff; border: 1px solid #d2d0ce; padding: 12px 20px; margin-bottom: 20px; border-left: 4px solid #005a9e; }
-.selector-card { background: #f3f2f1; border: 1px solid #d2d0ce; padding: 15px; margin-bottom: 20px; }
-.diff-table { width: 100%; border-collapse: collapse; background: #fff; }
-.diff-table th, .diff-table td { border: 1px solid #d2d0ce !important; padding: 8px 12px; font-size: 12px; vertical-align: top; }
-.diff-table th { background: #2b3b4c; color: #fff; text-transform: uppercase; font-size: 11px; }
-.changed-row { background: #fff8f8; }
-pre { margin: 0; font-size: 11px; color: #a4262c; white-space: pre-wrap; word-break: break-all; }
-</style>
-
 <div class="comp-wrapper">
     <div class="info-strip shadow-sm d-flex justify-content-between">
         <div>

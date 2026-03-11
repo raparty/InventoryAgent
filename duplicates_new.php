@@ -36,22 +36,6 @@ $dupAssets = $mysqli->query("
 ");
 ?>
 
-<style>
-/* Enterprise Grid Layout */
-.dup-container { padding: 20px; }
-.dup-card { background: #fff; border: 1px solid #d2d0ce; margin-bottom: 25px; border-radius: 2px; }
-.dup-card-header { background: #f3f2f1; padding: 10px 15px; border-bottom: 1px solid #d2d0ce; font-weight: 700; color: #2b3b4c; }
-
-.ent-table { width: 100%; border-collapse: collapse; }
-.ent-table th, .ent-table td { border: 1px solid #d2d0ce !important; padding: 8px 12px; font-size: 12px; text-align: left; }
-.ent-table th { background: #2b3b4c; color: #fff; text-transform: uppercase; font-size: 11px; }
-
-/* Grouping highlight for Duplicate Tags */
-.tag-group-header { background: #faf9f8; font-weight: 800; color: #005a9e; }
-.tag-badge { background: #005a9e; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 10px; }
-.count-badge { background: #d13438; color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: 700; }
-</style>
-
 <div class="dup-container">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="fw-bold mb-0">Duplicate Records Audit</h4>

@@ -4,26 +4,6 @@ $pageTitle = "Reports Center";
 include "header_new.php"; 
 ?>
 
-<style>
-/* SCOPED ENTERPRISE STYLE */
-.ent-reports-wrapper { padding: 20px; background: #f8f9fa; min-height: 90vh; }
-.ent-report-card { background: #fff; border: 1px solid #d2d0ce; border-radius: 4px; padding: 20px; margin-bottom: 25px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-.ent-section-title { font-size: 16px; font-weight: 700; color: #2b3b4c; border-bottom: 2px solid #005a9e; padding-bottom: 8px; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
-.small-muted { font-size: 12px; color: #605e5c; margin-bottom: 15px; }
-
-/* Autosuggest Dropdown */
-.suggest-container { position: absolute; z-index: 1050; width: 100%; background: #fff; border: 1px solid #d2d0ce; border-radius: 0 0 4px 4px; max-height: 250px; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: none; }
-.suggest-row { padding: 8px 12px; cursor: pointer; font-size: 13px; border-bottom: 1px solid #f3f2f1; }
-.suggest-row:hover { background: #f3f2f1; color: #005a9e; font-weight: 600; }
-.suggest-row:last-child { border-bottom: none; }
-
-.btn-enterprise { font-size: 13px; font-weight: 600; padding: 8px 16px; border-radius: 2px; transition: all 0.2s; }
-.btn-export-blue { background: #005a9e; color: #fff; border: none; }
-.btn-export-blue:hover { background: #004578; color: #fff; }
-.btn-export-green { background: #107c10; color: #fff; border: none; }
-.btn-export-green:hover { background: #0b5a0b; color: #fff; }
-</style>
-
 <div class="ent-reports-wrapper">
     <div class="container-fluid">
         

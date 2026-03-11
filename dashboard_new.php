@@ -58,17 +58,6 @@ $up_to_date    = $patchRow['up_to_date']    ?? 0;
 $outdated_total = $patchRow['outdated_total'] ?? 0;
 ?>
 
-<style>
-.dash-container { padding: 20px; }
-.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
-.stat-card { background: #fff; border: 1px solid #d2d0ce; border-radius: 4px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-.stat-card h3 { font-size: 32px; font-weight: 700; color: #005a9e; margin: 0; }
-.stat-card p { font-size: 12px; color: #605e5c; margin: 5px 0 0 0; text-transform: uppercase; font-weight: 600; }
-.chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
-.chart-card { background: #fff; border: 1px solid #d2d0ce; border-radius: 4px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-.chart-title { font-size: 14px; font-weight: 700; color: #2b3b4c; margin-bottom: 15px; }
-</style>
-
 <div class="dash-container">
     <h4 class="mb-4 fw-bold">Enterprise Dashboard</h4>
     

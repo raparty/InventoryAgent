@@ -12,18 +12,6 @@ $res = $mysqli->query($sql);
 $devices = ($res) ? $res->fetch_all(MYSQLI_ASSOC) : [];
 ?>
 
-<style>
-.ent-container { background: #fff; border: 1px solid #d2d0ce; margin: 15px; overflow-x: auto; }
-.ent-table { width: 100%; border-collapse: collapse; table-layout: auto; }
-.ent-table th, .ent-table td { border: 1px solid #d2d0ce !important; padding: 6px 12px !important; font-size: 12px; white-space: nowrap; }
-.ent-table th { background: #2b3b4c; color: #fff; text-transform: uppercase; cursor: pointer; text-align: left; }
-.status-instore { background: #fff4ce; color: #856404; font-weight: 700; border: 1px solid #ffeeba; padding: 2px 6px; border-radius: 3px; font-size: 10px; }
-.status-scrapped { background: #fde7e9; color: #a4262c; font-weight: 700; border: 1px solid #f8d7da; padding: 2px 6px; border-radius: 3px; font-size: 10px; }
-.ent-pagination { display: flex !important; justify-content: center; align-items: center; gap: 4px; padding: 10px; background: #fff; border: 1px solid #d2d0ce; border-top: none; }
-.ent-page-btn { min-width: 28px; height: 28px; border: 1px solid #d2d0ce; background: #fff; font-size: 11px; display: flex; align-items: center; justify-content: center; color: #333; cursor: pointer; }
-.ent-page-btn.active { background: #005a9e; color: #fff; border-color: #005a9e; }
-</style>
-
 <div class="p-3 bg-light border-bottom d-flex gap-2 align-items-center mx-3 mt-3 shadow-sm">
     <h6 class="m-0 fw-bold me-3">Inactive Asset Management</h6>
     <input type="text" id="searchHost" class="form-control form-control-sm" style="width:180px" placeholder="Hostname...">
