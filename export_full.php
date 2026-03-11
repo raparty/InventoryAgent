@@ -42,31 +42,35 @@ $devices = $mysqli->query("
     ORDER BY d.hostname
 ");
 
+// Fetch all monitor data in a single query to avoid N+1
+$monitor_map = [];
+$all_monitors = $mysqli->query("
+    SELECT 
+        mo.device_id,
+        mo.model AS monitor_model,
+        mo.serial AS monitor_serial,
+        mat.asset_tag AS monitor_asset_tag
+    FROM monitors mo
+    LEFT JOIN monitor_asset_tag_map mat
+        ON mat.monitor_serial = mo.serial
+    ORDER BY mo.device_id, mo.id
+");
+if ($all_monitors) {
+    while ($row = $all_monitors->fetch_assoc()) {
+        $did = (int)$row['device_id'];
+        if (!isset($monitor_map[$did])) {
+            $monitor_map[$did] = [];
+        }
+        if (count($monitor_map[$did]) < 2) {
+            $monitor_map[$did][] = $row;
+        }
+    }
+}
+
 while ($d = $devices->fetch_assoc()) {
 
     $device_id = (int)$d["id"];
-
-    // Get monitors (max 2) and their asset tags
-    $m_stmt = $mysqli->prepare("
-        SELECT 
-            mo.model AS monitor_model, 
-            mo.serial AS monitor_serial,
-            mat.asset_tag AS monitor_asset_tag
-        FROM monitors mo
-        LEFT JOIN monitor_asset_tag_map mat 
-            ON mat.monitor_serial = mo.serial
-        WHERE mo.device_id = ?
-        ORDER BY mo.id
-        LIMIT 2
-    ");
-    $m_stmt->bind_param("i", $device_id);
-    $m_stmt->execute();
-    $m = $m_stmt->get_result();
-
-    $monitors = [];
-    while ($row = $m->fetch_assoc()) {
-        $monitors[] = $row;
-    }
+    $monitors = $monitor_map[$device_id] ?? [];
 
     // Prepare monitor data (ensure keys exist)
     $m1 = $monitors[0] ?? ["monitor_model"=>"", "monitor_serial"=>"", "monitor_asset_tag"=>""];

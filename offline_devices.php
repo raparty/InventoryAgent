@@ -105,7 +105,7 @@ function renderPager() {
     for (let i = 1; i <= total; i++) {
         if (i === 1 || i === total || (i >= page - 1 && i <= page + 1)) {
             const btn = document.createElement('div');
-            btn.className = `pg-btn ${i === page ? 'active' : ''}`;
+            btn.className = `ent-page-btn ${i === page ? 'active' : ''}`;
             btn.innerText = i;
             btn.onclick = () => { page = i; renderTable(); renderPager(); };
             container.appendChild(btn);

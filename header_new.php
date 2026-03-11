@@ -9,7 +9,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= htmlspecialchars($pageTitle) ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="assets/enterprise_new.css?v=<?= time(); ?>">
+    <link rel="stylesheet" href="assets/enterprise_new.css?v=<?= filemtime(__DIR__ . '/assets/enterprise_new.css') ?>">
 </head>
 <body style="background-color: #f3f2f1 !important;">
 
@@ -25,6 +25,8 @@ $current_page = basename($_SERVER['PHP_SELF']);
     <a class="ent-nav-link <?= ($current_page == 'patch-compliance_new.php') ? 'active' : '' ?>" href="patch-compliance_new.php">Patches</a>
     <a class="ent-nav-link <?= ($current_page == 'compare_new.php') ? 'active' : '' ?>" href="compare_new.php">Device History</a>
     <a class="ent-nav-link <?= ($current_page == 'lifecycle_manager.php') ? 'active' : '' ?>" href="lifecycle_manager.php">Lifecycle Manager</a>
+    <a class="ent-nav-link <?= ($current_page == 'offline_devices.php') ? 'active' : '' ?>" href="offline_devices.php">Offline Devices</a>
+    <a class="ent-nav-link <?= ($current_page == 'duplicates_new.php') ? 'active' : '' ?>" href="duplicates_new.php">Duplicates</a>
 </nav>
 
 <div class="page-wrapper container-fluid p-0">

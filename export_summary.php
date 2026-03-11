@@ -1,6 +1,6 @@
 <?php
 // export_summary.php - exports summary CSV with clean headers
-include 'config.php';
+require_once 'config.php';
 
 header('Content-Type: text/csv; charset=utf-8');
 header('Content-Disposition: attachment; filename=inventory_summary.csv');
