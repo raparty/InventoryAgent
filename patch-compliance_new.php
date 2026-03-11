@@ -50,33 +50,6 @@ $totalCompliant = count(array_filter($patchData, function($v) { return $v['statu
 $complianceRate = ($totalActive > 0) ? round(($totalCompliant / $totalActive) * 100, 1) : 0;
 ?>
 
-<style>
-/* Enterprise Grid Styling */
-.ent-container { background: #fff; border: 1px solid #d2d0ce; margin: 15px; overflow-x: auto; }
-.ent-table { width: 100%; border-collapse: collapse; table-layout: auto; }
-.ent-table th, .ent-table td { border: 1px solid #d2d0ce !important; padding: 4px 8px !important; font-size: 11px; white-space: nowrap; }
-.ent-table th { background: #2b3b4c; color: #fff; text-transform: uppercase; cursor: pointer; text-align: left; }
-
-/* Status Colors */
-.status-compliant { color: #107c10; font-weight: 700; }
-.status-outdated { color: #d13438; font-weight: 700; }
-.status-syncing { color: #005a9e; font-weight: 700; font-style: italic; }
-.reboot-warn { color: #d13438; font-weight: 700; background: #fff8f8; }
-.host-text { color: #000; font-weight: 700; display: block; }
-.site-text { color: #005a9e; font-size: 10px; display: block; }
-
-/* Pager Styling */
-.ent-pagination { display: flex !important; justify-content: center; align-items: center; gap: 4px; padding: 10px; background: #fff; border: 1px solid #d2d0ce; border-top: none; }
-.ent-page-btn { min-width: 28px; height: 28px; border: 1px solid #d2d0ce; background: #fff; font-size: 11px; display: flex; align-items: center; justify-content: center; color: #333; cursor: pointer; }
-.ent-page-btn.active { background: #005a9e; color: #fff; border-color: #005a9e; }
-
-/* Stats Banner Styling */
-.patch-banner { display: flex; gap: 15px; margin: 15px; }
-.patch-stat-item { flex: 1; background: #fff; border: 1px solid #d2d0ce; padding: 15px; text-align: center; border-bottom: 3px solid #005a9e; }
-.stat-label { display: block; font-size: 11px; font-weight: 700; color: #605e5c; text-transform: uppercase; margin-bottom: 5px; }
-.stat-value { font-size: 24px; font-weight: 700; color: #005a9e; }
-</style>
-
 <div class="patch-banner">
     <div class="patch-stat-item">
         <span class="stat-label">Active Fleet</span>

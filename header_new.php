@@ -10,25 +10,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
     <title><?= htmlspecialchars($pageTitle) ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="assets/enterprise_new.css?v=<?= time(); ?>">
-    <style>
-        /* Enterprise Navigation Styling */
-        .ent-top-bar { height: 48px; background: #005a9e; color: white; display: flex; align-items: center; padding: 0 20px; font-size: 14px; }
-        .ent-nav-bar { background: white; border-bottom: 1px solid #edebe9; padding: 0 20px; display: flex; gap: 5px; }
-        .ent-nav-link { 
-            padding: 12px 16px; 
-            text-decoration: none; 
-            font-size: 13px; 
-            color: #605e5c; 
-            border-bottom: 3px solid transparent; 
-            transition: all 0.2s;
-        }
-        .ent-nav-link:hover { background: #f3f2f1; color: #005a9e; }
-        .ent-nav-link.active { 
-            color: #005a9e; 
-            border-bottom-color: #005a9e; 
-            font-weight: 600; 
-        }
-    </style>
 </head>
 <body style="background-color: #f3f2f1 !important;">
 

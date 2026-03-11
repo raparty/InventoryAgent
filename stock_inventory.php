@@ -13,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
     $qty = (int)$_POST['quantity'];
     $modifier = strtolower(trim($mysqli->real_escape_string($_POST['modified_by'])));
 
-    if (!str_ends_with($modifier, '-adm')) {
+    if (!\InventoryAgent\AdminValidator::isValid($modifier)) {
         $message = "<div class='alert alert-danger mx-3 shadow-sm'>Admin ID (-adm) required.</div>";
     } else {
         // Update Balance
@@ -48,18 +48,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
 $inventory = $mysqli->query("SELECT * FROM stock_inventory ORDER BY category ASC, model_name ASC")->fetch_all(MYSQLI_ASSOC);
 $logs = $mysqli->query("SELECT l.*, i.model_name FROM stock_logs l JOIN stock_inventory i ON l.item_id = i.id ORDER BY l.timestamp DESC LIMIT 50")->fetch_all(MYSQLI_ASSOC);
 ?>
-
-<style>
-    .stock-grid { display: grid; grid-template-columns: 350px 1fr; gap: 20px; padding: 20px; }
-    .ent-card { background: #fff; border: 1px solid #d2d0ce; border-radius: 4px; height: fit-content; }
-    .ent-header { background: #f3f2f1; padding: 10px; border-bottom: 1px solid #d2d0ce; font-weight: 700; font-size: 11px; text-transform: uppercase; color: #323130; }
-    .stock-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-    .stock-table th, .stock-table td { border-bottom: 1px solid #edebe9; padding: 10px; }
-    .low-stock { background: #fff8f8; border-left: 4px solid #a4262c !important; }
-    .pager-btn { padding: 2px 8px; font-size: 11px; margin: 0 2px; }
-</style>
-
-
 
 <div class="stock-grid">
     <div>

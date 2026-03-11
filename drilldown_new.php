@@ -7,26 +7,18 @@ $mysqli->set_charset('utf8mb4');
 
 $type = isset($_GET['type']) ? htmlspecialchars($_GET['type'], ENT_QUOTES, 'UTF-8') : '';
 $displayTitle = "Inventory Details";
-$whereClause = "1=1";
 
 // Handle Drilldown Types - using whitelist approach
-$allowedTypes = ['missing_asset_tag', 'offline', 'pending_reboot'];
-if (in_array($type, $allowedTypes)) {
-    switch ($type) {
-        case 'missing_asset_tag':
-            $displayTitle = "Devices Missing Asset Tags";
-            $whereClause = "NOT EXISTS (SELECT 1 FROM asset_tag_map atm WHERE atm.serial_number = d.serial)";
-            break;
-        case 'offline':
-            $displayTitle = "Devices Offline > 7 Days";
-            $whereClause = "DATEDIFF(CURDATE(), d.last_seen) > 7";
-            break;
-        case 'pending_reboot':
-            $displayTitle = "Devices Requiring Reboot";
-            $whereClause = "d.uptime_seconds > 604800";
-            break;
-    }
+if (\InventoryAgent\DrilldownFilter::isAllowed($type)) {
+    $whereClause = \InventoryAgent\DrilldownFilter::toWhereClause($type);
+    $displayTitle = match ($type) {
+        'missing_asset_tag' => "Devices Missing Asset Tags",
+        'offline'           => "Devices Offline > 7 Days",
+        'pending_reboot'    => "Devices Requiring Reboot",
+        default             => "Inventory Details",
+    };
 } else {
+    $whereClause = "1=1";
     $displayTitle = "General Inventory Drilldown";
 }
 
@@ -40,21 +32,6 @@ $query = "
 $res = $mysqli->query($query);
 $drillData = $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
 ?>
-
-<style>
-/* Enterprise Grid Styling */
-.ent-container { background: #fff; border: 1px solid #d2d0ce; margin: 15px; overflow-x: auto; }
-.ent-table { width: 100%; border-collapse: collapse; table-layout: auto; }
-.ent-table th, .ent-table td { border: 1px solid #d2d0ce !important; padding: 4px 8px !important; font-size: 11px; white-space: nowrap; }
-.ent-table th { background: #2b3b4c; color: #fff; text-transform: uppercase; cursor: pointer; text-align: left; }
-.host-text { color: #000; font-weight: 700; display: block; }
-.location-text { color: #005a9e; font-weight: 600; }
-.chassis-badge { background: #f3f2f1; color: #323130; padding: 2px 6px; border-radius: 4px; font-size: 10px; border: 1px solid #d2d0ce; }
-
-.ent-pagination { display: flex !important; justify-content: center; align-items: center; gap: 4px; padding: 10px; background: #fff; border: 1px solid #d2d0ce; border-top: none; }
-.ent-page-btn { min-width: 28px; height: 28px; border: 1px solid #d2d0ce; background: #fff; font-size: 11px; display: flex; align-items: center; justify-content: center; color: #333; cursor: pointer; }
-.ent-page-btn.active { background: #005a9e; color: #fff; border-color: #005a9e; }
-</style>
 
 <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center">
     <div>

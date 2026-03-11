@@ -1,14 +1,23 @@
 <?php
 /**
  * Database Configuration
- * Copy this file to config.php and update with your actual credentials
+ * Copy this file to config.php and update with your actual credentials.
+ * Alternatively, copy .env.example to .env and set your values there —
+ * config.php will load them automatically via phpdotenv.
  */
 
-// Database connection settings
-$db_host = 'localhost';
-$db_user = 'your_database_user';
-$db_pass = 'your_database_password';
-$db_name = 'inventory_database';
+require_once __DIR__ . '/vendor/autoload.php';
+
+// Load .env when it exists (local dev / Docker / CI).
+// In production you may set server environment variables directly instead.
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+$dotenv->safeLoad();
+
+// Database connection settings (env vars take precedence over defaults below)
+$db_host = $_ENV['DB_HOST'] ?? 'localhost';
+$db_user = $_ENV['DB_USER'] ?? 'your_database_user';
+$db_pass = $_ENV['DB_PASS'] ?? 'your_database_password';
+$db_name = $_ENV['DB_NAME'] ?? 'inventory_database';
 
 // Create database connection
 $mysqli = new mysqli($db_host, $db_user, $db_pass, $db_name);
@@ -22,14 +31,13 @@ if ($mysqli->connect_error) {
 $mysqli->set_charset('utf8mb4');
 
 // Microsoft Teams Webhook URL (used by cron_alerts.php)
-// Move the webhook URL from cron_alerts.php to here for better security
-define('TEAMS_WEBHOOK_URL', 'your_teams_webhook_url_here');
+define('TEAMS_WEBHOOK_URL', $_ENV['TEAMS_WEBHOOK_URL'] ?? '');
 
-// Optional: Application settings
-define('APP_NAME', 'Enterprise Inventory');
-define('APP_ENV', 'production'); // 'development' or 'production'
+// Application settings
+define('APP_NAME', $_ENV['APP_NAME'] ?? 'Enterprise Inventory');
+define('APP_ENV',  $_ENV['APP_ENV']  ?? 'production');
 
-// Optional: Error reporting (set to 0 in production)
+// Error reporting
 if (APP_ENV === 'development') {
     ini_set('display_errors', 1);
     ini_set('display_startup_errors', 1);
