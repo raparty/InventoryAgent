@@ -320,7 +320,7 @@ APP_ENV=production          # set to 'development' for verbose errors
 │  • WORKSTATION-42: RAM Change (8GB ➔ 16GB)                      │
 │                                                                  │
 │  Critical Offline (> 7 Days):                                    │
-│  • LAPTOP-07 (HYDW - Laptop) | Last seen: 2026-03-25            │
+│  • LAPTOP-07 (Office - Laptop) | Last seen: 2026-03-25            │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
