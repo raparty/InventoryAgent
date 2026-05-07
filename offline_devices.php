@@ -5,13 +5,14 @@ include "header_new.php";
 
 $mysqli->set_charset('utf8mb4');
 
-/** * 1. FETCH OFFLINE DATA
- * Filters for devices where the last_seen date is older than 7 days from today.
+/** 1. FETCH OFFLINE DATA
+ * Filters for devices where the last_seen date is older than OFFLINE_DAYS_THRESHOLD days.
  */
+$offlineDays = OFFLINE_DAYS_THRESHOLD;
 $query = "
     SELECT id, hostname, serial, location, last_seen, chassis_type
-    FROM devices 
-    WHERE DATEDIFF(CURDATE(), last_seen) > 7
+    FROM devices
+    WHERE DATEDIFF(CURDATE(), last_seen) > $offlineDays
       AND status = 'Active'
     ORDER BY last_seen ASC
 ";
@@ -22,7 +23,7 @@ $offlineData = $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
 
 <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center">
     <div>
-        <h5 class="mb-0 fw-bold">Offline Devices (> 7 Days)</h5>
+        <h5 class="mb-0 fw-bold">Offline Devices (&gt; <?= OFFLINE_DAYS_THRESHOLD ?> Days)</h5>
         <small class="text-muted">High-priority audit list: <?= count($offlineData) ?> devices</small>
     </div>
     <div class="d-flex gap-2">

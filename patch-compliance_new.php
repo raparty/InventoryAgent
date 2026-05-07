@@ -7,38 +7,41 @@ $mysqli->set_charset('utf8mb4');
 
 /**
  * 1. REFINED COMPLIANCE QUERY
- * Adds a 14-day grace period for new/freshly built machines.
- * Flags as Outdated only if the last patch is older than 45 days.
+ * Uses configurable thresholds from config.php (PATCH_GRACE_DAYS, PATCH_COMPLIANCE_DAYS, PATCH_RECENT_DAYS).
+ * Flags as Outdated only if the last patch is older than PATCH_COMPLIANCE_DAYS days.
  */
+$graceDays      = PATCH_GRACE_DAYS;
+$complianceDays = PATCH_COMPLIANCE_DAYS;
+$recentDays     = PATCH_RECENT_DAYS;
 $query = "
-    SELECT 
+    SELECT
         d.id, d.hostname, d.serial, d.location, d.os_name, d.os_build, d.os_ubr, d.location_agent,
         MAX(p.install_date) as last_patch,
-        CASE 
-            -- Rule 1: New machines get a 14-day grace period before being called Outdated
-            WHEN MAX(p.install_date) IS NULL AND DATEDIFF(CURDATE(), d.last_seen) <= 14 THEN 'Syncing'
-            
-            -- Rule 2: If patched in the last 45 days, it is Compliant
-            WHEN MAX(p.install_date) IS NOT NULL AND DATEDIFF(CURDATE(), MAX(p.install_date)) <= 45 THEN 'Compliant'
-            
+        CASE
+            -- Rule 1: New machines get a grace period before being called Outdated
+            WHEN MAX(p.install_date) IS NULL AND DATEDIFF(CURDATE(), d.last_seen) <= $graceDays THEN 'Syncing'
+
+            -- Rule 2: If patched within the compliance window, it is Compliant
+            WHEN MAX(p.install_date) IS NOT NULL AND DATEDIFF(CURDATE(), MAX(p.install_date)) <= $complianceDays THEN 'Compliant'
+
             -- Rule 3: Otherwise, it is Outdated
             ELSE 'Outdated'
         END as status,
-        CASE 
+        CASE
             WHEN d.uptime_seconds > 604800 THEN 'Yes'
             ELSE 'No'
         END as pending_reboot
     FROM devices d
     LEFT JOIN patch_status p ON d.id = p.device_id
-    WHERE d.status = 'Active' 
-      AND d.last_seen > NOW() - INTERVAL 30 DAY
+    WHERE d.status = 'Active'
+      AND d.last_seen > NOW() - INTERVAL $recentDays DAY
     GROUP BY d.id
-    ORDER BY 
-        CASE 
-            WHEN MAX(p.install_date) IS NULL AND DATEDIFF(CURDATE(), d.last_seen) <= 14 THEN 2
-            WHEN MAX(p.install_date) IS NOT NULL AND DATEDIFF(CURDATE(), MAX(p.install_date)) <= 45 THEN 3
+    ORDER BY
+        CASE
+            WHEN MAX(p.install_date) IS NULL AND DATEDIFF(CURDATE(), d.last_seen) <= $graceDays THEN 2
+            WHEN MAX(p.install_date) IS NOT NULL AND DATEDIFF(CURDATE(), MAX(p.install_date)) <= $complianceDays THEN 3
             ELSE 1
-        END ASC, 
+        END ASC,
         d.hostname ASC
 ";
 

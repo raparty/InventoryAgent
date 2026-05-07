@@ -12,8 +12,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
     if (empty($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'])) {
         $message = "<div class='alert alert-danger mx-3 shadow-sm'>Invalid request. Please try again.</div>";
     } else {
-        $cat = $_POST['category'];
-        $model = $_POST['model_name'];
+        $cat = trim($_POST['category']);
+        $model = trim($_POST['model_name']);
         $qty = (int)$_POST['quantity'];
         $modifier = strtolower(trim($_POST['modified_by']));
 
@@ -35,20 +35,26 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
             }
             
             if ($stmt->execute()) {
-                // Log the Transaction for Audit
-                $item_stmt = $mysqli->prepare("SELECT id FROM stock_inventory WHERE model_name = ?");
-                $item_stmt->bind_param("s", $model);
-                $item_stmt->execute();
-                $item_res = $item_stmt->get_result();
-                $item_row = $item_res->fetch_assoc();
-                $act_label = ($_POST['action'] == 'receive') ? 'Receive' : 'Issue';
-                if ($item_row !== null) {
-                    $item_id = $item_row['id'];
-                    $log_stmt = $mysqli->prepare("INSERT INTO stock_logs (item_id, action_type, quantity, admin_user) VALUES (?, ?, ?, ?)");
-                    $log_stmt->bind_param("isis", $item_id, $act_label, $qty, $modifier);
-                    $log_stmt->execute();
+                // For issue operations, check that the UPDATE actually matched a row
+                // (affected_rows = 0 means insufficient stock)
+                if ($_POST['action'] !== 'receive' && $stmt->affected_rows === 0) {
+                    $message = "<div class='alert alert-warning mx-3 shadow-sm'>Insufficient stock to issue " . (int)$qty . " x " . htmlspecialchars($model) . ". No changes were made.</div>";
+                } else {
+                    // Log the Transaction for Audit
+                    $item_stmt = $mysqli->prepare("SELECT id FROM stock_inventory WHERE model_name = ?");
+                    $item_stmt->bind_param("s", $model);
+                    $item_stmt->execute();
+                    $item_res = $item_stmt->get_result();
+                    $item_row = $item_res->fetch_assoc();
+                    $act_label = ($_POST['action'] == 'receive') ? 'Receive' : 'Issue';
+                    if ($item_row !== null) {
+                        $item_id = $item_row['id'];
+                        $log_stmt = $mysqli->prepare("INSERT INTO stock_logs (item_id, action_type, quantity, admin_user) VALUES (?, ?, ?, ?)");
+                        $log_stmt->bind_param("isis", $item_id, $act_label, $qty, $modifier);
+                        $log_stmt->execute();
+                    }
+                    $message = "<div class='alert alert-success mx-3 shadow-sm'>Successfully logged: $act_label $qty x " . htmlspecialchars($model) . "</div>";
                 }
-                $message = "<div class='alert alert-success mx-3 shadow-sm'>Successfully logged: $act_label $qty x " . htmlspecialchars($model) . "</div>";
             }
         }
     }
@@ -115,7 +121,7 @@ $logs = $mysqli->query("SELECT l.*, i.model_name FROM stock_logs l JOIN stock_in
                         <td class="p-2">
                             <span class="badge <?= $l['action_type']=='Receive'?'bg-success':'bg-secondary' ?>"><?= $l['action_type'] ?></span>
                             <strong><?= htmlspecialchars($l['model_name']) ?></strong> (<?= $l['quantity'] ?>)<br>
-                            <span class="text-muted"><?= $l['timestamp'] ?> by <?= $l['admin_user'] ?></span>
+                            <span class="text-muted"><?= htmlspecialchars($l['timestamp']) ?> by <?= htmlspecialchars($l['admin_user']) ?></span>
                         </td>
                     </tr>
                     <?php endforeach; ?>
