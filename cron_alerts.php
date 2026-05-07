@@ -14,6 +14,11 @@ if (empty($webhook_url)) {
     die("Error: TEAMS_WEBHOOK_URL is not set. Configure it in your environment or .env file.");
 }
 
+if (!filter_var($webhook_url, FILTER_VALIDATE_URL)) {
+    error_log("cron_alerts: TEAMS_WEBHOOK_URL is not a valid URL. Aborting.");
+    die("Error: TEAMS_WEBHOOK_URL is not a valid URL. Check your environment configuration.");
+}
+
 // 2. Fetch Unsent Hardware Changes
 $change_list = [];
 $log_ids = [];
@@ -34,11 +39,12 @@ if ($res && $res->num_rows > 0) {
 
 // 3. Fetch Offline Data (Matching Dashboard Logic)
 $offline_list = [];
+$offlineDays = OFFLINE_DAYS_THRESHOLD;
 $off_query = "
     SELECT id, hostname, serial, location, last_seen, chassis_type
-    FROM devices 
-    WHERE DATEDIFF(CURDATE(), last_seen) > 7
-    AND status = 'Active' 
+    FROM devices
+    WHERE DATEDIFF(CURDATE(), last_seen) > $offlineDays
+    AND status = 'Active'
     AND hostname IS NOT NULL
     ORDER BY last_seen ASC
 ";

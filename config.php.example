@@ -42,6 +42,12 @@ define('TEAMS_WEBHOOK_URL', $_ENV['TEAMS_WEBHOOK_URL'] ?? '');
 define('APP_NAME', $_ENV['APP_NAME'] ?? 'Enterprise Inventory');
 define('APP_ENV',  $_ENV['APP_ENV']  ?? 'production');
 
+// Operational thresholds (configurable via .env or server environment variables)
+define('OFFLINE_DAYS_THRESHOLD', (int)($_ENV['OFFLINE_DAYS_THRESHOLD'] ?? 7));   // Days before a device is considered offline
+define('PATCH_COMPLIANCE_DAYS',  (int)($_ENV['PATCH_COMPLIANCE_DAYS']  ?? 45));  // Max days since last patch to be considered compliant
+define('PATCH_GRACE_DAYS',       (int)($_ENV['PATCH_GRACE_DAYS']       ?? 14));  // Grace period for new/freshly built machines
+define('PATCH_RECENT_DAYS',      (int)($_ENV['PATCH_RECENT_DAYS']      ?? 30));  // Window for "recently seen" devices in patch reports
+
 // Error reporting
 if (APP_ENV === 'development') {
     ini_set('display_errors', 1);

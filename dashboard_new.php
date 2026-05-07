@@ -8,24 +8,28 @@ $mysqli->set_charset('utf8mb4');
 // -----------------------------------------------------------------------
 // Query 1: Device counts (total, offline, type, OS, location) — 1 query
 // -----------------------------------------------------------------------
-$statsRow = $mysqli->query("
+$offlineDays      = OFFLINE_DAYS_THRESHOLD;
+$offlineDaysYest  = OFFLINE_DAYS_THRESHOLD + 1; // yesterday simulation
+$recentDays       = PATCH_RECENT_DAYS;
+$statsResult = $mysqli->query("
     SELECT
-        COUNT(*)                                                               AS totalDevices,
-        SUM(CASE WHEN DATEDIFF(CURDATE(), last_seen) > 7 THEN 1 ELSE 0 END)  AS offlineDevices,
-        /* yesterday sim: DATEDIFF(CURDATE()-1, last_seen) > 7 ≡ DATEDIFF(CURDATE(), last_seen) > 8 */
-        SUM(CASE WHEN DATEDIFF(CURDATE(), last_seen) > 8 THEN 1 ELSE 0 END)  AS offlineDevicesYest,
-        SUM(CASE WHEN chassis_type LIKE '%Server%'  THEN 1 ELSE 0 END)       AS servers,
-        SUM(CASE WHEN chassis_type LIKE '%Desktop%' THEN 1 ELSE 0 END)       AS desktops,
-        SUM(CASE WHEN chassis_type LIKE '%Laptop%'  THEN 1 ELSE 0 END)       AS laptops,
-        SUM(CASE WHEN os_name LIKE '%Windows 10%'   THEN 1 ELSE 0 END)       AS win10,
-        SUM(CASE WHEN os_name LIKE '%Windows 11%'   THEN 1 ELSE 0 END)       AS win11,
-        SUM(CASE WHEN location LIKE '%HYDW%'         THEN 1 ELSE 0 END)      AS locHYDW,
-        SUM(CASE WHEN location LIKE '%HYDE%'         THEN 1 ELSE 0 END)      AS locHYDE,
+        COUNT(*)                                                                          AS totalDevices,
+        SUM(CASE WHEN DATEDIFF(CURDATE(), last_seen) > $offlineDays THEN 1 ELSE 0 END)  AS offlineDevices,
+        /* yesterday sim: DATEDIFF(CURDATE()-1, last_seen) > threshold ≡ DATEDIFF > threshold+1 */
+        SUM(CASE WHEN DATEDIFF(CURDATE(), last_seen) > $offlineDaysYest THEN 1 ELSE 0 END) AS offlineDevicesYest,
+        SUM(CASE WHEN chassis_type LIKE '%Server%'  THEN 1 ELSE 0 END)                  AS servers,
+        SUM(CASE WHEN chassis_type LIKE '%Desktop%' THEN 1 ELSE 0 END)                  AS desktops,
+        SUM(CASE WHEN chassis_type LIKE '%Laptop%'  THEN 1 ELSE 0 END)                  AS laptops,
+        SUM(CASE WHEN os_name LIKE '%Windows 10%'   THEN 1 ELSE 0 END)                  AS win10,
+        SUM(CASE WHEN os_name LIKE '%Windows 11%'   THEN 1 ELSE 0 END)                  AS win11,
+        SUM(CASE WHEN location LIKE '%HYDW%'         THEN 1 ELSE 0 END)                 AS locHYDW,
+        SUM(CASE WHEN location LIKE '%HYDE%'         THEN 1 ELSE 0 END)                 AS locHYDE,
         SUM(CASE WHEN (location IS NULL OR location = '' OR location = 'UNKNOWN') THEN 1 ELSE 0 END) AS locUNK,
-        SUM(CASE WHEN last_seen < NOW() - INTERVAL 30 DAY THEN 1 ELSE 0 END) AS not_responding
+        SUM(CASE WHEN last_seen < NOW() - INTERVAL $recentDays DAY THEN 1 ELSE 0 END)   AS not_responding
     FROM devices
     WHERE status = 'Active'
-")->fetch_assoc();
+");
+$statsRow = $statsResult ? $statsResult->fetch_assoc() : [];
 
 $totalDevices       = $statsRow['totalDevices']       ?? 0;
 $offlineDevices     = $statsRow['offlineDevices']     ?? 0;
@@ -43,22 +47,25 @@ $not_responding     = $statsRow['not_responding']     ?? 0;
 // -----------------------------------------------------------------------
 // Query 2: Patch compliance for recently-seen devices — 1 query
 // -----------------------------------------------------------------------
-$patchRow = $mysqli->query("
+$complianceDays     = PATCH_COMPLIANCE_DAYS;
+$complianceDaysYest = PATCH_COMPLIANCE_DAYS + 1; // yesterday simulation
+$patchResult = $mysqli->query("
     SELECT
-        SUM(CASE WHEN max_install IS NOT NULL AND DATEDIFF(CURDATE(), max_install) <= 45 THEN 1 ELSE 0 END) AS up_to_date,
-        SUM(CASE WHEN max_install IS NULL     OR  DATEDIFF(CURDATE(), max_install) >  45 THEN 1 ELSE 0 END) AS outdated_total,
-        /* yesterday sim: apply same thresholds with CURDATE()-1, i.e. shift boundaries by 1 day */
-        SUM(CASE WHEN max_install IS NOT NULL AND DATEDIFF(CURDATE(), max_install) <= 46 THEN 1 ELSE 0 END) AS up_to_date_yest,
-        SUM(CASE WHEN max_install IS NULL     OR  DATEDIFF(CURDATE(), max_install) >  46 THEN 1 ELSE 0 END) AS outdated_yest
+        SUM(CASE WHEN max_install IS NOT NULL AND DATEDIFF(CURDATE(), max_install) <= $complianceDays THEN 1 ELSE 0 END) AS up_to_date,
+        SUM(CASE WHEN max_install IS NULL     OR  DATEDIFF(CURDATE(), max_install) >  $complianceDays THEN 1 ELSE 0 END) AS outdated_total,
+        /* yesterday sim: shift compliance boundary by 1 day */
+        SUM(CASE WHEN max_install IS NOT NULL AND DATEDIFF(CURDATE(), max_install) <= $complianceDaysYest THEN 1 ELSE 0 END) AS up_to_date_yest,
+        SUM(CASE WHEN max_install IS NULL     OR  DATEDIFF(CURDATE(), max_install) >  $complianceDaysYest THEN 1 ELSE 0 END) AS outdated_yest
     FROM (
         SELECT d.id, MAX(p.install_date) AS max_install
         FROM devices d
         LEFT JOIN patch_status p ON d.id = p.device_id
         WHERE d.status = 'Active'
-          AND d.last_seen > NOW() - INTERVAL 30 DAY
+          AND d.last_seen > NOW() - INTERVAL $recentDays DAY
         GROUP BY d.id
     ) AS patch_summary
-")->fetch_assoc();
+");
+$patchRow = $patchResult ? $patchResult->fetch_assoc() : [];
 
 $up_to_date      = $patchRow['up_to_date']      ?? 0;
 $outdated_total  = $patchRow['outdated_total']  ?? 0;
